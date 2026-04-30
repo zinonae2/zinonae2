@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Exam System</title>
+    <style>
+        /* =========================================
+           1. تنسيقات لوحة التحكم (Dashboard CSS)
+           ========================================= */
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --accent-blue: #2f80ed; /* لون الخط الأزرق في البطاقة */
+            --status-blue: #3b82f6; /* لون كلمة Upcoming */
+            --btn-blue: #2563eb;
+            --green-verify: #10b981;
+            --border-color: #333;
+            
+            /* متغيرات الاختبار الفعلي */
+            --page-bg-exam: #132845;
+            --text-exam: #eaf0ff;
+            --accent-exam: #0376e0;
+            --green-exam: #47c776;
+            --flag-exam: #fb922f;
+            --warn-exam: #ff5c5c;
+            --shadow-exam: 0 8px 20px rgba(0,0,0,.15);
+            --top-bg: #0f223a;
+            --left-bg: #0f2747;
+            --main-bg: #0b1a2b;
+            --bottom-bg: #0e1c31;
+            --card-exam: #212b44;
+            --option-bg: #6274a6;
+            --marks-blue: #5aa0ff;
+            --qscale: 1;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        /* --- حاويات الصفحات --- */
+        #dashboard-container { display: block; }
+        #exam-interface-container { display: none; height: 100vh; }
+
+        /* --- تنسيقات لوحة البداية --- */
+        #dashboard-page { padding: 15px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; background-color: #ccc; border-radius: 50%; }
+        
+        /* تنسيق الأيقونات الجديدة لتشبه الصورة */
+        .header-icons { display: flex; gap: 20px; align-items: center; }
+        .icon-btn { 
+            width: 24px; height: 24px; 
+            fill: none; stroke: white; stroke-width: 2; 
+            cursor: pointer; opacity: 0.9;
+        }
+
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+        .tab { flex: 1; text-align: center; padding: 10px; color: var(--text-secondary); cursor: pointer; font-weight: 500; font-size: 15px; }
+        .tab.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
+        
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; color: #ccc; }
+        .toggle-switch { width: 40px; height: 22px; background-color: var(--green-verify); border-radius: 20px; position: relative; }
+        .toggle-switch::after { content: ''; position: absolute; right: 2px; top: 2px; width: 18px; height: 18px; background: white; border-radius: 50%; }
+        
+        /* بطاقة الاختبار */
+        .exam-card { 
+            background-color: var(--card-bg); 
+            border-radius: 12px; 
+            padding: 20px; 
+            position: relative;
+            /* الخط الأزرق الجانبي المنحني */
+            border-left: 4px solid #3b82f6; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+        }
+
+        .exam-header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        .exam-title { font-weight: bold; font-size: 16px; color: white; margin-bottom: 4px;}
+        .exam-date-group { text-align: right; }
+        .exam-date { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+
+        .exam-details-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            row-gap: 12px;
+            font-size: 14px;
+        }
+
+        .label { color: var(--text-secondary); }
+        .value { color: white; font-weight: 500; text-align: right; }
+        
+        .status-upcoming { color: var(--status-blue); font-weight: bold; text-align: right; }
+
+        .attempt-btn { 
+            background-color: var(--btn-blue); color: white; border: none; width: 100%; padding: 12px; 
+            border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 20px; 
+        }
+
+        /* --- صفحة ما قبل الاختبار (التعليمات) --- */
+        #exam-start-page { display: none; height: 100vh; flex-direction: column; }
+        .page-header { padding: 15px; display: flex; align-items: center; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .back-arrow { font-size: 24px; margin-right: 15px; cursor: pointer; }
+        .detail-list { padding: 20px; flex-grow: 1; }
+        .detail-item { display: flex; flex-direction: column; margin-bottom: 20px; }
+        .detail-item .dt-label { color: var(--text-secondary); font-size: 12px; margin-bottom: 5px; }
+        .detail-item .dt-value { font-size: 16px; }
+        .instructions-box { background-color: var(--card-bg); margin: 0 20px; padding: 20px; border-radius: 8px; height: 150px; color: var(--text-secondary); font-size: 14px; }
+        .footer-action { padding: 20px; background-color: var(--bg-color); }
+
+        /* --- النافذة المنبثقة (Modal) --- */
+        #password-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background-color: #242424; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; color: white; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { cursor: pointer; background: #333; border-radius: 5px; padding: 2px 6px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; color: var(--text-secondary); margin-bottom: 8px; }
+        .input-group input { width: 100%; padding: 12px; background-color: transparent; border: 1px solid white; border-radius: 8px; color: white; font-size: 16px; outline: none; }
+        .modal-actions { display: flex; gap: 10px; }
+        .btn-cancel { background-color: #333; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-verify { background-color: var(--green-verify); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+
+        /* =========================================
+           2. تنسيقات الاختبار الفعلي (Exam CSS)
+           ========================================= */
+        .app { height: 100%; width: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 12px 12px 90px; box-sizing: border-box; color: var(--text-exam); }
+
+        /* Top Bar */
+        .section-top { background: var(--top-bg); border: 1px solid #1a3557; border-radius: 12px; box-shadow: var(--shadow-exam); padding: 12px; }
+        .topbar { display: grid; grid-template-columns: 48px 1fr 160px; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .clock-badge { width: 40px; height: 40px; border-radius: 999px; border: 3px solid #89a6c7; display: grid; place-items: center; }
+        .clock-badge::before { content: ""; width: 14px; height: 14px; border: 2px solid #89a6c7; border-radius: 999px; }
+        .tabs-exam { display: flex; justify-content: center; gap: 14px; }
+        .tab-exam { padding: 10px 22px; font-size: 15px; border-radius: 12px; background: #233858; color: #cfe2ff; border: 1px solid #2f4a73; cursor: pointer; }
+        .tab-exam[aria-selected="true"] { background: #2c4a77; color: #fff; border-color: #638bd1; }
+        .timer { justify-self: end; display: flex; gap: 6px; align-items: center; color: #ffd59e; }
+        .timer .ico { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ffd59e; position: relative; }
+        .timer .ico::after { content: ""; position: absolute; top: 3px; left: 7px; width: 2px; height: 6px; background: #ffd59e; border-radius: 2px; }
+        .timer .txt { font-weight: 700; white-space: nowrap; }
+
+        .stats-wrap { display: grid; gap: 10px; }
+        .name { background: #2b4363; padding: 10px 12px; border-radius: 8px; font-weight: 600; display: inline-block; text-align: left; }
+        .row { display: grid; grid-template-columns: 220px 1fr 56px; align-items: center; gap: 10px; }
+        .lcol { white-space: nowrap; }
+        .bar { height: 10px; background: #0d1f37; border-radius: 6px; position: relative; overflow: hidden; border: 1px solid #274567; }
+        .bar>span { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #58d76f, #3ed26b); }
+
+        .modecard { background: #284260; border: 1px solid #355173; border-radius: 10px; padding: 8px 16px; width: 160px; text-align: center; font-weight: 700; display: flex; flex-direction: column; gap: 6px; }
+        .modehead { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .modebar { height: 8px; background: #0d1f37; border: 1px solid #274567; border-radius: 6px; position: relative; overflow: hidden; }
+        .modebar>span { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #58d76f, #3ed26b); }
+
+        /* Panels */
+        .middle { display: grid; grid-template-columns: 76px 1fr; gap: 12px; min-height: 0; }
+        .left-panel { background: var(--left-bg); border: 1px solid #1f3d67; border-radius: 12px; box-shadow: var(--shadow-exam); padding: 8px 6px; display: flex; flex-direction: column; min-height: 0; }
+        .side { overflow: auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+        .idx { display: grid; place-items: center; height: 36px; width: 56px; background: var(--accent-exam); color: #fff; font-weight: 800; border: 1px solid #2a7bff; border-radius: 8px; cursor: pointer; user-select: none; margin-inline: auto; }
+        .idx.active { outline: 3px solid #a8d1ff66; }
+        .idx.answered { background: var(--green-exam); border-color: #7ae3a3; }
+        .idx.flag { background: var(--flag-exam); border-color: #ffd29b; color: #1e232b; }
+        .idx.skip { background: #ff7676; border-color: #ff9aa0; }
+
+        .main-panel { background: var(--main-bg); border: 1px solid #1a3557; border-radius: 12px; box-shadow: var(--shadow-exam); padding: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .card { background: var(--card-exam); color: #e7eefc; border: 1px solid #1d2740; border-radius: 12px; padding: 14px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+        .qhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .qtitle { font-weight: 800; }
+        .qtitle .blue { color: var(--marks-blue); }
+        .marks { color: var(--marks-blue); font-weight: 700; }
+        
+        .qtools { margin-top: 6px; padding-top: 8px; border-top: 1px solid #314261; display: flex; align-items: center; gap: 10px; }
+        .qtools .label { color: #5aa0ff; font-weight: 700; }
+        .size-btn { width: 32px; height: 32px; border-radius: 16px; border: 1px solid #4a5e86; background: #2a3a57; color: #eaf0ff; display: grid; place-items: center; font-size: 18px; cursor: pointer; }
+        .size-btn:focus-visible { outline: 3px solid #89a6ff; }
+        
+        .qtext { font-size: calc(16px * var(--qscale)); margin: 10px 0 14px; }
+        .opts { display: grid; gap: 12px; }
+        .opt { display: flex; align-items: center; gap: 12px; border: 1px solid #ffffff; border-radius: 12px; padding: 12px; background: var(--option-bg); color: #ffffff; cursor: pointer; font-size: calc(16px * var(--qscale)); }
+        .opt:has(input:focus-visible) { outline: 3px solid #bcd6ff; }
+        .opt input[type="radio"] { appearance: none; -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ffffff; background: transparent; transition: border-color .15s, background .15s, box-shadow .15s; }
+        .opt input[type="radio"]:hover { box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+        .opt input[type="radio"]:checked { border-color: #1f7cff; background-color: #1f7cff; -webkit-mask: radial-gradient(circle, transparent 55%, #000 56%); mask: radial-gradient(circle, transparent 55%, #000 56%); }
+        .opt.selected { box-shadow: 0 0 0 3px #a6b7e9; }
+
+        /* Dock */
+        .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--bottom-bg); border-top: 1px solid #1e3a61; padding: 12px 16px; }
+        .dock-inner { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; }
+        .btn { border: 1px solid #2d4f7d; background: #1a3557; color: #e8f2ff; padding: 12px 18px; border-radius: 10px; cursor: pointer; font-weight: 700; min-width: 160px; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: #1f7cff; border-color: #2a7bff; color: #fff; }
+        .btn-danger { background: var(--warn-exam); border-color: #ff9aa0; color: #fff; }
+        #btnPrev { justify-self: start; }
+        #btnFlag { justify-self: center; }
+        #btnNext { justify-self: end; }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard-container">
+        <div id="dashboard-page">
+            <div class="header-top">
+                <div class="user-info">
+                    <div class="avatar"></div>
+                    <div>
+                        <div style="font-size: 12px; color: #888;">Welcome</div>
+                        <div style="font-size: 14px; font-weight: bold;">yousef abdulrhman saud alhodaib</div>
+                    </div>
+                </div>
+                <div class="header-icons">
+                     <svg class="icon-btn" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-2.6-6.4l.6.6"/><path d="M21 3v9h-9"/></svg>
+                     <svg class="icon-btn" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                     <svg class="icon-btn" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active">Summative</div>
+                <div class="tab">Formative</div>
+            </div>
+
+            <div class="controls">
+                <span>Total Exams: 1</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>Close All</span>
+                    <div class="toggle-switch"></div>
+                </div>
+            </div>
+
+            <div class="exam-card">
+                <div class="exam-header">
+                    <div class="exam-title">NURS 226 FINAL EXAM 1ST SEM 1447</div>
+                    <div class="exam-date-group">
+                        <div class="exam-date">29 Dec 2025</div>
+                        <div class="exam-date">01:00 PM</div>
+                    </div>
+                </div>
+
+                <div class="exam-details-grid">
+                    <span class="label">Course</span>
+                    <span class="value">Pharmacology for Nursing</span>
+                    
+                    <span class="label">Duration</span>
+                    <span class="value">02:00:00</span>
+                    
+                    <span class="label">Proctored</span>
+                    <span class="value">No</span>
+                    
+                    <span class="label">Status</span>
+                    <span class="status-upcoming">Upcoming</span>
+                    
+                    <span class="label">Upload Status</span>
+                    <span class="value">-</span>
+                </div>
+
+                <button class="attempt-btn" onclick="goToExamPage()">Attempt (Take Exam)</button>
+            </div>
+        </div>
+
+        <div id="exam-start-page">
+            <div class="page-header">
+                <span class="back-arrow" onclick="goBackToDashboard()">&#8592;</span>
+                <span style="font-weight: bold;">NURS 226 FINAL EXAM 1ST SEM 1447</span>
+            </div>
+
+            <div class="detail-list">
+                <div class="detail-item">
+                    <span class="dt-label">Course</span>
+                    <span class="dt-value">Pharmacology for Nursing</span>
+                </div>
+                <div class="detail-item">
+                    <span class="dt-label">Total Duration</span>
+                    <span class="dt-value">02:00:00</span>
+                </div>
+                <div class="detail-item">
+                    <span class="dt-label">Remaining Duration</span>
+                    <span class="dt-value" id="timer-display" style="color: var(--accent-blue);">02:00:00</span>
+                </div>
+                <div class="detail-item">
+                    <span class="dt-label">Language</span>
+                    <span class="dt-value">English</span>
+                </div>
+                <div class="detail-item">
+                    <span class="dt-label">Proctored</span>
+                    <span class="dt-value">No</span>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <span style="font-weight: bold; font-size: 14px;">Instructions</span>
+                    <div class="instructions-box">
+                        No Instructions Available.
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-action">
+                <button class="attempt-btn" onclick="openModal()">Start Exam</button>
+            </div>
+        </div>
+
+        <div id="password-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Verification</h3>
+                    <span class="close-modal" onclick="closeModal()">&#10005;</span>
+                </div>
+                <div class="input-group">
+                    <label>Examination Password</label>
+                    <input type="password" id="exam-password-input" placeholder="********">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button class="btn-verify" onclick="verifyAndStart()">Verify</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="exam-interface-container">
+        <div class="app">
+            <section class="section-top" role="region" aria-label="Header and stats">
+              <div class="topbar">
+                <div class="clock-badge" aria-hidden="true"></div>
+                <div class="tabs-exam" role="tablist">
+                  <button class="tab-exam" role="tab" aria-selected="true">Summary</button>
+                  <button class="tab-exam" role="tab" aria-selected="false">Tools</button>
+                </div>
+                <div class="timer" aria-live="polite" aria-atomic="true">
+                  <span class="ico" aria-hidden="true"></span>
+                  <span class="txt" id="timerText">120 (mins)</span>
+                </div>
+              </div>
+        
+              <div class="stats-wrap">
+                <div class="name" id="userNameExam">yousef abdulrhman saud alhodaib</div>
+        
+                <div class="row">
+                  <div class="lcol">Items <span id="itemsLabel">0 / 40</span></div>
+                  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="itemsBar"></span></div>
+                  <div id="itemsPercent">0%</div>
+                </div>
+        
+                <div class="row">
+                  <div class="lcol" id="timeText">Time 0 / 125 (mins)</div>
+                  <div class="bar" role="progressbar" aria-label="Time used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <span id="timeBar"></span>
+                  </div>
+                  <div id="timePercent">0%</div>
+                </div>
+        
+                <div class="modecard" role="group" aria-label="Question type and progress">
+                  <div class="modehead">
+                    <span>Multi Choice</span>
+                    <span id="modePctTxt">0%</span>
+                  </div>
+                  <div class="modebar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <span id="modeBar"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+        
+            <section class="middle">
+              <aside class="left-panel">
+                <nav class="side" id="sidebar" aria-label="Questions list"></nav>
+              </aside>
+        
+              <div class="main-panel">
+                <article class="card" id="qCard" aria-live="polite">
+                  <div class="qhead">
+                    <div class="qtitle" id="qTitle"><span class="blue">Q.1</span></div>
+                    <div class="marks">Marks 0.50</div>
+                  </div>
+        
+                  <div class="qtools">
+                    <span class="label">Text size</span>
+                    <button type="button" class="size-btn" id="inc" aria-label="Increase text size">+</button>
+                    <button type="button" class="size-btn" id="dec" aria-label="Decrease text size">−</button>
+                  </div>
+        
+                  <div class="qtext" id="qText"></div>
+                  <form class="opts" id="opts" aria-label="Options"></form>
+                </article>
+              </div>
+            </section>
+          </div>
+        
+          <div class="dock" role="region" aria-label="Bottom controls">
+            <div class="dock-inner">
+              <button class="btn" id="btnPrev" aria-label="Previous question">Previous</button>
+              <button class="btn" id="btnFlag" aria-pressed="false" aria-label="Flag question">Flag</button>
+              <button class="btn btn-primary" id="btnNext" aria-label="Next question">Next</button>
+            </div>
+          </div>
+    </div>
+
+    <script>
+        // --- 1. منطق لوحة التحكم (Dashboard Logic) ---
+        let dashboardTimerInterval;
+
+        function goToExamPage() {
+            document.getElementById('dashboard-page').style.display = 'none';
+            document.getElementById('exam-start-page').style.display = 'flex';
+            startDashboardTimer();
+        }
+
+        function goBackToDashboard() {
+            document.getElementById('exam-start-page').style.display = 'none';
+            document.getElementById('dashboard-page').style.display = 'block';
+            clearInterval(dashboardTimerInterval);
+        }
+
+        // تحديث المؤقت ليصبح 02:00:00
+        function startDashboardTimer() {
+            let hours = 2, minutes = 5, seconds = 0;
+            const display = document.getElementById('timer-display');
+            if(dashboardTimerInterval) clearInterval(dashboardTimerInterval);
+
+            dashboardTimerInterval = setInterval(() => {
+                if (seconds > 0) seconds--;
+                else {
+                    if (minutes > 0) { minutes--; seconds = 59; }
+                    else {
+                        if (hours > 0) { hours--; minutes = 59; seconds = 59; }
+                        else clearInterval(dashboardTimerInterval);
+                    }
+                }
+                const h = hours.toString().padStart(2, '0');
+                const m = minutes.toString().padStart(2, '0');
+                const s = seconds.toString().padStart(2, '0');
+                display.textContent = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function openModal() {
+            document.getElementById('password-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('password-modal').style.display = 'none';
+        }
+
+        // --- 2. منطق الانتقال والتحقق (Transition Logic) ---
+        function verifyAndStart() {
+            // إخفاء لوحة التحكم والنافذة
+            closeModal();
+            document.getElementById('dashboard-container').style.display = 'none';
+            clearInterval(dashboardTimerInterval); // إيقاف مؤقت المقدمة
+
+            // إظهار الاختبار
+            const examContainer = document.getElementById('exam-interface-container');
+            examContainer.style.display = 'block';
+            
+            // تغيير لون خلفية الـ Body لتناسب الاختبار الأزرق
+            document.body.style.backgroundColor = '#132845';
+
+            // بدء تشغيل سكريبت الاختبار
+            initExamSystem();
+        }
+
+        // --- 3. منطق الاختبار الفعلي (Exam App Logic) ---
+        
+        /* ==== 40 سؤال (30 أصلي + 10 مكرر) ==== */
+        const bank = [
+        /* الـ 50 سؤال الأصلية */
+       {
+  q: "Asthma is best described as a disease with which two main components?",
+  a: ["Inflammation and bronchospasm", "Infection and fibrosis", "Edema and emphysema", "Obstruction and collapse"]
+},
+{
+  q: "Status asthmaticus refers to:",
+  a: ["A prolonged asthma attack", "Exercise-induced asthma", "Mild intermittent asthma", "Nocturnal asthma"]
+},
+{
+  q: "Which of the following is a common trigger of asthma?",
+  a: ["Tobacco smoke", "Calcium supplements", "Cold water", "Vitamin C"]
+},
+{
+  q: "Exercise-induced asthma is more likely to occur in:",
+  a: ["Dry, cold climates", "Warm, humid climates", "Indoor environments", "At rest only"]
+},
+{
+  q: "One goal of asthma drug therapy is to:",
+  a: ["Terminate acute bronchospasm", "Cure asthma permanently", "Eliminate allergens", "Increase mucus production"]
+},
+{
+  q: "Quick-relief medications for asthma include:",
+  a: ["Beta2-adrenergic agonists", "Antibiotics", "Antihistamines only", "Mucolytics"]
+},
+{
+  q: "Long-term control of asthma commonly includes:",
+  a: ["Inhaled corticosteroids", "Short-acting beta agonists only", "Opioids", "Antibiotics"]
+},
+{
+  q: "Which drug class is most effective for relieving acute bronchospasm?",
+  a: ["Beta2-adrenergic agonists", "Leukotriene modifiers", "Mast cell stabilizers", "Immunomodulators"]
+},
+{
+  q: "Beta2-agonists cause bronchodilation by:",
+  a: ["Relaxing bronchial smooth muscle", "Reducing mucus thickness", "Suppressing immune cells", "Blocking histamine"]
+},
+{
+  q: "Compared with nonselective beta agonists, beta2 agonists have:",
+  a: ["Fewer cardiac side effects", "More cardiac toxicity", "No respiratory effect", "Longer onset of action"]
+},
+{
+  q: "Albuterol is classified as a:",
+  a: ["Short-acting beta2 agonist", "Long-acting beta2 agonist", "Corticosteroid", "Anticholinergic"]
+},
+{
+  q: "The preferred drug to terminate an acute asthma attack is:",
+  a: ["Inhaled albuterol", "Oral albuterol", "Inhaled corticosteroid", "Leukotriene modifier"]
+},
+{
+  q: "Oral albuterol is not recommended for acute attacks because it:",
+  a: ["Has a slower onset of action", "Is unsafe", "Causes hypoglycemia", "Is ineffective"]
+},
+{
+  q: "Inhaled albuterol can be used before exercise to:",
+  a: ["Prevent exercise-induced bronchospasm", "Increase endurance", "Reduce heart rate", "Improve muscle strength"]
+},
+{
+  q: "Proper inhaler technique is important because it:",
+  a: ["Ensures effective drug delivery", "Reduces drug cost", "Prevents infection", "Eliminates side effects"]
+},
+{
+  q: "The pregnancy category of albuterol is:",
+  a: ["Category C", "Category A", "Category B", "Category D"]
+},
+{
+  q: "The onset of action of inhaled albuterol is approximately:",
+  a: ["5–15 minutes", "30–60 minutes", "1–2 hours", "6–8 hours"]
+},
+{
+  q: "Common adverse effects of albuterol include:",
+  a: ["Tachycardia and tremor", "Hypotension and bradycardia", "Sedation", "Constipation"]
+},
+{
+  q: "Which adverse effect is considered uncommon but serious with albuterol?",
+  a: ["Paradoxical bronchospasm", "Dry mouth", "Headache", "Insomnia"]
+},
+{
+  q: "Albuterol should be used cautiously in patients with a history of:",
+  a: ["Cardiac disease", "Peptic ulcer", "Renal stones", "Hypothyroidism"]
+},
+{
+  q: "Concurrent use of beta blockers with albuterol may:",
+  a: ["Inhibit bronchodilation", "Enhance bronchodilation", "Prevent side effects", "Increase absorption"]
+},
+{
+  q: "Patients should avoid MAOIs within how many days of starting albuterol?",
+  a: ["14 days", "3 days", "7 days", "30 days"]
+},
+{
+  q: "High doses of albuterol may cause which electrolyte imbalance?",
+  a: ["Hypokalemia", "Hyperkalemia", "Hyponatremia", "Hypercalcemia"]
+},
+{
+  q: "Products containing caffeine may increase which albuterol side effects?",
+  a: ["Nervousness and palpitations", "Sedation", "Hypotension", "Respiratory depression"]
+},
+{
+  q: "Overdose of albuterol primarily causes excessive activation of the:",
+  a: ["Sympathetic nervous system", "Parasympathetic nervous system", "Central nervous system only", "Renal system"]
+},
+{
+  q: "Which condition may result from albuterol overdose?",
+  a: ["Dysrhythmias", "Respiratory acidosis", "Hypoglycemia", "Bradycardia"]
+},
+{
+  q: "In severe albuterol overdose, treatment may include:",
+  a: ["Cardioselective beta blockers", "Opioids", "Diuretics", "Calcium channel blockers"]
+},
+{
+  q: "Before administering beta2 agonists, the nurse should assess:",
+  a: ["Respiratory rate and lung sounds", "Bowel sounds", "Vision acuity", "Reflexes"]
+},
+{
+  q: "Albuterol should not be administered to patients with a history of:",
+  a: ["Dysrhythmia or MI", "Diabetes mellitus", "Asthma", "Allergic rhinitis"]
+},
+{
+  q: "Use of beta2 agonists in children younger than 6 years is:",
+  a: ["Limited", "Contraindicated in all cases", "Preferred", "Without restrictions"]
+},
+{
+  q: "Albuterol is not recommended for:",
+  a: ["Breastfeeding women", "Older adults", "Adolescents", "Athletes"]
+},
+{
+  q: "Which assessment finding indicates effective albuterol therapy?",
+  a: ["Improved breath sounds", "Increased wheezing", "Decreased oxygen saturation", "Increased dyspnea"]
+},
+{
+  q: "Leukotriene modifiers are primarily used to:",
+  a: ["Reduce asthma attack frequency", "Treat acute bronchospasm", "Relieve pain", "Suppress cough only"]
+},
+{
+  q: "Mast cell stabilizers help asthma by:",
+  a: ["Preventing release of inflammatory mediators", "Dilating bronchi immediately", "Suppressing respiration", "Increasing mucus secretion"]
+},
+{
+  q: "Systemic corticosteroids in asthma are mainly used to:",
+  a: ["Control inflammation", "Relieve anxiety", "Increase oxygen demand", "Thin secretions"]
+},
+{
+  q: "Which route of albuterol administration provides the fastest relief?",
+  a: ["Inhalation", "Oral tablet", "Extended-release tablet", "Oral solution"]
+},
+{
+  q: "Asthma attacks are often triggered by exposure to:",
+  a: ["Allergens", "Vitamins", "Electrolytes", "Hormones"]
+},
+{
+  q: "Which finding suggests worsening asthma control?",
+  a: ["Increased use of rescue inhaler", "Decreased symptoms", "Stable peak flow", "Improved exercise tolerance"]
+},
+{
+  q: "The primary role of beta2 agonists in asthma management is to:",
+  a: ["Relieve bronchoconstriction", "Reduce infection", "Cure inflammation", "Suppress immunity"]
+},
+{
+  q: "Use of beta2 agonists in children younger than 6 years is:",
+  a: ["Limited", "Contraindicated in all cases", "Preferred", "Without restrictions"]
+}
+
+]
+
+        // تم تحديث الوقت الكلي إلى 120 دقيقة (ساعتين و 5 دقائق)
+        const state = { itemsAnswered:0, totalQuestions:bank.length, timeUsed:0, timeTotal:120 };
+        const $ = s=>document.querySelector(s);
+        const setBar=(el,p,aria)=>{el.style.width=p+"%"; if(aria) aria.setAttribute("aria-valuenow",Math.round(p));};
+        const pct=n=>`${Math.max(0,Math.min(100,Math.round(n)))}%`;
+        const questions = bank.map((it,i)=>({ id:i+1, text:it.q, options:it.a.slice(), answer:null, flagged:false }));
+
+        function updateOverview(){
+            $("#itemsLabel").textContent=` ${state.itemsAnswered} / ${state.totalQuestions}`;
+            const itemsPct=(state.itemsAnswered/state.totalQuestions)*100;
+            setBar($("#itemsBar"),itemsPct,$("#itemsBar").parentElement);
+            $("#itemsPercent").textContent=pct(itemsPct);
+
+            $("#timeText").textContent=`Time ${Math.floor(state.timeUsed)} / ${state.timeTotal} (mins)`;
+            const tPct=(state.timeUsed/state.timeTotal)*100;
+            setBar($("#timeBar"),tPct,$("#timeBar").parentElement);
+            $("#timePercent").textContent=pct(tPct);
+
+            $("#modePctTxt").textContent=pct(itemsPct);
+            setBar($("#modeBar"),itemsPct,$("#modeBar").parentElement);
+        }
+
+        const side=$("#sidebar");
+        function sidebarClass(q,i,active){
+            let cls="idx";
+            if(q.flagged) cls+=" flag";
+            if(q.answer!==null) cls+=" answered";
+            if(i===active) cls+=" active";
+            return cls;
+        }
+        function renderSidebar(active){
+            side.innerHTML="";
+            questions.forEach((q,i)=>{
+                const b=document.createElement("button");
+                b.type="button"; b.className=sidebarClass(q,i,active);
+                b.textContent=q.id; b.onclick=()=>go(i);
+                side.appendChild(b);
+            });
+        }
+
+        let idx=0;
+        const qTitle=$("#qTitle"), qText=$("#qText"), opts=$("#opts");
+        function renderQuestion(){
+            const q=questions[idx];
+            qTitle.innerHTML=`<span class="blue">Q.${q.id}</span>`;
+            qText.textContent=q.text;
+            opts.innerHTML="";
+            q.options.forEach((label,i)=>{
+                const row=document.createElement("label");
+                row.className="opt"+(q.answer===i?" selected":"");
+                const rb=document.createElement("input");
+                rb.type="radio"; rb.name="opt"; rb.checked=q.answer===i;
+                rb.onchange=()=>{
+                q.answer=i;
+                [...opts.children].forEach(el=>el.classList.remove("selected"));
+                row.classList.add("selected");
+                updateAnswered(); renderSidebar(idx);
+                };
+                row.appendChild(rb);
+                row.appendChild(document.createTextNode(label));
+                opts.appendChild(row);
+            });
+            $("#btnPrev").disabled = idx===0;
+            const next=$("#btnNext");
+            const last=idx===questions.length-1;
+            next.textContent= last?"End Exam":"Next";
+            next.classList.toggle("btn-danger", last);
+            next.classList.toggle("btn-primary", !last);
+            $("#btnFlag").setAttribute("aria-pressed", String(q.flagged));
+            renderSidebar(idx);
+        }
+
+        function updateAnswered(){
+            state.itemsAnswered = questions.filter(q=>q.answer!==null).length;
+            updateOverview();
+        }
+
+        function go(i){ idx=i; renderQuestion(); }
+        $("#btnPrev").onclick=()=>{ if(idx>0){ idx--; renderQuestion(); } };
+        $("#btnNext").onclick=()=>{ if(idx<questions.length-1){ idx++; renderQuestion(); } else alert("Exam ended (visual only)."); };
+        $("#btnFlag").onclick=()=>{ const q=questions[idx]; q.flagged=!q.flagged; renderQuestion(); };
+
+        /* Text size controls */
+        const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+        let scale=1;
+        const setScale=()=>{ document.documentElement.style.setProperty('--qscale', scale); };
+        $("#inc").onclick=()=>{ scale=clamp(scale+0.1,0.85,1.6); setScale(); };
+        $("#dec").onclick=()=>{ scale=clamp(scale-0.1,0.85,1.6); setScale(); };
+
+        // دالة البدء الفعلية (تستدعى من زر Verify)
+        function initExamSystem() {
+            /* Init Timer and Logic */
+            const start=Date.now();
+            setInterval(()=>{
+                state.timeUsed=Math.min(state.timeTotal,(Date.now()-start)/60000);
+                const remain = Math.max(0, state.timeTotal - Math.floor(state.timeUsed));
+                $("#timerText").textContent = `${remain} (mins)`;
+                updateOverview();
+            },1000);
+
+            /* Init UI */
+            updateOverview(); renderSidebar(idx); renderQuestion(); setScale();
+        }
+    </script>
+</body>
+</html>
